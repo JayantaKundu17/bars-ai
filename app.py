@@ -11,6 +11,8 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import mm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
     SimpleDocTemplate,
     Paragraph,
@@ -570,6 +572,14 @@ def markdown_to_pdf_elements(markdown_text, styles):
             )
             continue
 
+        if line.startswith("#### "):
+            flush_paragraph()
+            flush_list()
+            elements.append(
+                Paragraph(paragraph_markup(line[5:].strip()), styles["Heading3"])
+            )
+            continue
+
         if line.startswith("### "):
             flush_paragraph()
             flush_list()
@@ -624,6 +634,17 @@ def generate_legal_pdf(document_text):
     )
 
     styles = getSampleStyleSheet()
+    # Register Unicode font for Indian Rupee symbol
+    font_path = Path(__file__).resolve().parent / "assets" / "fonts" / "Arial Unicode.ttf"
+    pdfmetrics.registerFont(TTFont("ArialUnicode", str(font_path)))
+    pdfmetrics.registerFontFamily(
+        "ArialUnicode",
+        normal="ArialUnicode",
+        bold="ArialUnicode",
+        italic="ArialUnicode",
+        boldItalic="ArialUnicode",
+    )
+
 
     styles.add(
         ParagraphStyle(
@@ -638,7 +659,7 @@ def generate_legal_pdf(document_text):
         )
     )
 
-    styles["BodyText"].fontName = "Helvetica"
+    styles["BodyText"].fontName = "ArialUnicode"
     styles["BodyText"].fontSize = 11.5
     styles["BodyText"].leading = 17
     styles["BodyText"].textColor = colors.HexColor("#374151")
@@ -1778,85 +1799,146 @@ elif page == "Document Drafting":
         if not facts.strip():
             st.warning("Please provide the facts of your case.")
         else:
-            prompt = f"""
-Prepare a first draft of a {document_type}.
+            common_context = f"""
+You are an experienced Indian legal-drafting assistant.
 
-Sender: {sender_name or "[Sender name]"}
-Recipient: {recipient_name or "[Recipient name]"}
-Location: {location or "[Location]"}
+Prepare a first draft of the following document:
+{document_type}
 
-Facts supplied by the user:
+SENDER: {sender_name or "[Sender name]"}
+RECIPIENT: {recipient_name or "[Recipient name]"}
+LOCATION: {location or "[City and State]"}
+
+FACTS SUPPLIED BY THE USER:
 {facts}
 
-Structured case file (if selected; do not treat disputed allegations as established facts):
+STRUCTURED CASE FILE:
 {format_case_context(active_case) if active_case and use_case_for_drafting else "No saved case file selected."}
 
-DRAFTING INSTRUCTIONS:
+GENERAL DRAFTING RULES:
 
-Create a complete, reasonably detailed first draft of the requested legal notice.
-The previous draft was too short. Do not reduce the notice to only two generic
-sentences. Aim for approximately 6 to 9 substantive paragraphs, with enough
-detail to make it a useful editable draft. Do not add empty filler.
+1. Produce the actual requested document, not an explanation of the user's situation.
+2. Use formal, professional Indian legal drafting language.
+3. Use only facts supplied by the user or contained in the selected case file.
+4. Clearly distinguish allegations, disputed facts and established information.
+5. Never invent dates, addresses, amounts, communications, evidence, police reports,
+   legal provisions, case citations or relationships.
+6. Use square-bracket placeholders for missing information.
+7. Do not present an allegation as a proven fact or declare legal liability
+   without adequate supporting information.
+8. Use applicable legal provisions only when retrieved legal sources support
+   their relevance. Otherwise, do not invent or guess statutory sections.
+9. Keep the document reasonably detailed and useful for editing.
+10. Do not include a case analysis, checklist, explanation of your drafting
+    process, source summary or introductory commentary.
+11. Return only the requested document.
+"""
 
-Create only the legal notice itself. Do not produce a case-analysis report,
-checklist, explanation, source summary, or numbered outline.
+            if document_type == "Legal Notice":
+                document_instructions = """
+DOCUMENT-SPECIFIC INSTRUCTIONS — LEGAL NOTICE
 
-LAYOUT:
+Prepare a formal legal notice based on the actual dispute described in the facts.
+Do not assume that the matter concerns a lost or stolen vehicle.
+
+STRUCTURE:
+
 - Put "DRAFT LEGAL NOTICE" alone at the top.
-- Show the sender's name, then a separate placeholder line for the sender's
-  full postal address, city, state and PIN code.
-- Show "To," on its own line, followed by the recipient's name and a separate
-  placeholder line for the recipient's full postal address, city, state and PIN.
-- Put the date and place on separate lines.
-- Include one concise "Subject:" line.
-- Do not use numbered headings or labels such as "Sender Details",
-  "Recipient Details", "Date and Place", "Brief Introduction",
-  "Chronological Statement of Facts", "Relevant Legal Grounds",
-  "Specific Request", or "Closing and Signature".
-- Write the body as formal, connected paragraphs. Use a short list only if
-  necessary to make specific requests clear.
-- End with "Yours faithfully,", a signature line, and the sender's name alone.
-  Do not append "(Sender)" or any role label after the sender's name.
+- Include the sender's name and a separate placeholder for the full postal address.
+- Include "To," followed by the recipient's name and address placeholder.
+- Include separate date and place lines.
+- Include a concise Subject line.
+- Begin with a suitable formal salutation.
+- Write the body in approximately 6 to 9 substantive, connected paragraphs.
+- End with "Yours faithfully,", a signature line and the sender's name.
 
-CONTENT REQUIREMENTS FOR A LOST-BIKE NOTICE:
-- State that the sender reports the loss of a bike, using only that fact as
-  established if no further facts have been supplied.
-- Include clearly marked placeholders for the date and approximate time of
-  loss, location, bike make/model, colour, registration number, chassis/engine
-  number if available, and a concise description of the circumstances.
-- Include a paragraph with a placeholder for explaining the recipient's
-  actual connection to the bike or incident. Do not accuse the recipient of
-  taking, possessing, concealing, damaging, or selling the bike unless the
-  user has expressly supplied that fact. If no connection is known, phrase
-  this neutrally and request clarification.
-- Include a paragraph recording prior attempts to contact the recipient,
-  with placeholders for dates, method of communication and responses. Do not
-  state that contact was attempted unless the user confirms it.
-- Include a paragraph with placeholders for any police complaint/FIR or
-  other report number and date, but do not claim one has been filed.
-- State the sender's concern and the practical outcome sought.
-- Make clear, in polite but firm language, that the recipient is requested to
-  provide accurate information about the bike's whereabouts and, if the bike
-  is in their custody or control, arrange its safe return. Keep the request
-  conditional where custody or control has not been established.
-- Include a reasonable response period as a placeholder, not an invented
-  number of days.
-- Include a final paragraph reserving the sender's ability to seek appropriate
-  advice and remedies after the facts and applicable law are verified. Do not
-  threaten criminal or civil proceedings as an established entitlement.
+If the supplied facts concern a motor vehicle accident, address the relevant
+details where available:
 
-LEGAL ACCURACY:
-- Use only facts supplied by the user. Use square-bracket placeholders for
-  missing details instead of inventing them.
-- Do not invent dates, amounts, events, addresses, evidence, relationships,
-  police reports, statutes, legal sections, cases, or legal remedies.
-- Do not imply that the recipient is legally liable merely because the bike
-  is described as lost.
-- Include legal provisions only if the retrieved sources directly support
-  their application to these facts. If they do not, omit legal citations.
-- Do not claim that the notice is legally compliant or ready to send.
-- Use professional, formal language. This is a draft for review by a
-  qualified Indian advocate before it is sent."""
+- Date, approximate time and location of the collision.
+- Vehicles and persons involved, as identified in the supplied facts.
+- The claimant's account of how the collision occurred.
+- The allegation that the other driver jumped a red signal, clearly identified
+  as an allegation if it is disputed.
+- The other driver's version of events, including any allegation of speeding
+  or contributory negligence.
+- Injuries, treatment, surgery and medical expenses.
+- Loss of income and the period of absence from work, if supplied.
+- Vehicle damage and repair expenses, if supplied.
+- Available supporting material, such as the FIR, CCTV footage and witnesses,
+  without claiming that material has been independently verified.
+- Insurance information and communication with the insurer, if supplied.
+
+Explain the sender's position and the compensation or other relief being sought.
+Use only amounts actually supplied. Identify estimates as estimates and
+claimed losses as claims, not as amounts already legally awarded.
+
+Address the recipient only in the capacity supported by the supplied facts.
+Do not automatically assume that the recipient is the vehicle owner, driver,
+insurer or legally liable party.
+
+Where relevant, request a response concerning the incident, insurance details
+and the proposed resolution of the claim. Use placeholders for missing policy
+numbers, addresses and response periods.
+
+Do not assert that the recipient has committed an offence or is conclusively
+liable merely because the sender alleges negligence.
+
+Conclude with a reasonable, professional request for resolution and reserve
+the sender's right to pursue remedies available under applicable law after
+the facts and legal position have been verified.
+
+Do not include headings such as "Understanding your situation",
+"Case Analysis" or "Evidence Checklist".
+"""
+
+            elif document_type == "Consumer Complaint":
+                document_instructions = """
+DOCUMENT-SPECIFIC INSTRUCTIONS — CONSUMER COMPLAINT
+
+Prepare a structured consumer complaint using the supplied facts.
+Identify the complainant and opposite party, transaction or service,
+chronology, alleged deficiency or unfair practice, supporting documents
+and relief requested.
+
+Use placeholders for the appropriate consumer commission, jurisdiction,
+case number, addresses and missing procedural details.
+Do not invent a transaction, payment, defect, communication or legal provision.
+Do not format this as a legal notice.
+"""
+
+            elif document_type == "Reply to Legal Notice":
+                document_instructions = """
+DOCUMENT-SPECIFIC INSTRUCTIONS — REPLY TO LEGAL NOTICE
+
+Prepare a formal reply to the legal notice based on the response facts
+provided by the user.
+
+Address the sender of the original notice, identify the notice being answered
+using placeholders where details are missing, and respond to each supplied
+allegation accurately.
+
+Do not admit disputed allegations, invent a denial, or introduce facts that
+the user has not supplied. Clearly mark any allegation for which the user
+has provided no response or information.
+
+Do not format this as a fresh legal notice.
+"""
+
+            else:
+                document_instructions = """
+DOCUMENT-SPECIFIC INSTRUCTIONS — FORMAL REQUEST LETTER
+
+Prepare a formal request letter based on the supplied facts.
+Include sender and recipient details, date, subject, a clear explanation
+of the circumstances, the specific request, relevant supporting details
+and a professional closing.
+
+Use placeholders for missing information. Do not format this as a legal notice.
+"""
+
+            prompt = common_context + document_instructions
+
             try:
                 result = generate_legal_response(prompt)
                 if result_has_error(result):
