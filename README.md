@@ -2,8 +2,8 @@
 
 **Understand legal issues. Organise cases. Prepare documents. Practise legal arguments.**
 
-
-### <a href="https://bars-ai-legal.streamlit.app/">Live Demo</a> ·
+### Live Demo
+### <a href="https://bars-ai-legal.streamlit.app/">[Live Demo](https://bars-ai-legal.streamlit.app/)</a> 
 
 
 ## Overview
