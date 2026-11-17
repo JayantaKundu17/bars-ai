@@ -1,0 +1,23 @@
+# Secrets
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+
+# Python environment
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+
+# macOS
+.DS_Store
+
+# Local backups
+app_before*.py
+backend/*_backup.py
+
+# Temporary files
+*.log
+.pytest_cache/
+.mypy_cache/
