@@ -2,10 +2,9 @@
 
 **Understand legal issues. Organise cases. Prepare documents. Practise legal arguments.**
 
-<p align="center">
-  <a href="https://bars-ai-legal.streamlit.app/">Live Application</a> ·
-  <a href="https://github.com/JayantaKundu17/bars-ai">GitHub Repository</a>
-</p>
+
+###<a href="https://bars-ai-legal.streamlit.app/">Live Demo</a> ·
+
 
 ## Overview
 
@@ -250,9 +249,6 @@ Deployment configuration:
 
 GitHub: [@JayantaKundu17](https://github.com/JayantaKundu17)
 
-Project Repository: [BARS AI](https://github.com/JayantaKundu17/bars-ai)
-
-Live Project: [BARS AI — Legal Assistant](https://bars-ai-legal.streamlit.app/)
 
 ---
 
